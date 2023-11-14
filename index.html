@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=800, height=600, initial-scale=1.0">
+  <style>
+    body {
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      background-image: url('배경이미지.jpg'); /* 이미지 파일의 경로로 변경 */
+      background-size: cover;
+    }
+
+    .player {
+      position: absolute;
+      height: 50px;
+      width: 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: transparent; /* 배경을 투명하게 설정 */
+    }
+
+    .player img {
+      width: 100%; /* 이미지 크기를 부모 요소에 맞게 설정 */
+      height: 100%;
+      object-fit: cover; /* 이미지 비율 유지하며 부모 요소에 맞춤 */
+    }
+
+    .playerName {
+      font-size: 12px;
+      margin-top: 5px;
+    }
+  </style>
+  <title>다중 플레이어 역전 달리기 게임</title>
+</head>
+<body>
+
+  <label for="playerCount">플레이어 수:</label>
+  <input type="number" id="playerCount" value="10" min="1" max="50">
+  
+  <div id="playerNames">
+    <!-- 각 플레이어의 이름을 입력할 폼을 생성하는 스크립트 -->
+  </div>
+
+  <button onclick="startGame()">게임 시작</button>
+
+  <script>
+    let playerCountInput = document.getElementById('playerCount');
+    let playerNamesDiv = document.getElementById('playerNames');
+    let startButton = document.querySelector('button');
+
+    let playerCount = parseInt(playerCountInput.value);
+    let players = [];
+    let gameInterval;
+
+    function initializePlayers() {
+      for (let i = 0; i < playerCount; i++) {
+        const playerNameInput = document.createElement('input');
+        playerNameInput.type = 'text';
+        playerNameInput.placeholder = '플레이어 ' + (i + 1) + ' 이름';
+        playerNamesDiv.appendChild(playerNameInput);
+      }
+    }
+
+    function movePlayers() {
+      let isRaceOver = false;
+
+      players.forEach((player, index) => {
+        if (Math.random() < 0.02) {
+          player.speed += (Math.random() - 0.5) * 2 * 0.125; // 2배 더 느린 속도로 조정
+          player.speedChanges++;
+        }
+
+        player.position += player.speed;
+
+        if (player.position > 800 - player.element.offsetWidth || player.position < 0) {
+          player.speed += (Math.random() - 0.5) * 2 * 0.125; // 2배 더 느린 속도로 조정
+          player.speedChanges++;
+        }
+
+        player.element.style.left = player.position + 'px';
+        checkCollision(player);
+
+        if (player.position >= 800 - player.element.offsetWidth) {
+          isRaceOver = true;
+        }
+      });
+
+      updateRank();
+
+      if (isRaceOver) {
+        clearInterval(gameInterval);
+
+        const ranks = players.map(player => player.rank);
+        alert('게임 오버!\n' + ranks.map((rank, index) => players.find(player => player.rank === rank).name + ' 플레이어 ' + rank + '등').join('\n'));
+
+        resetGame();
+      }
+    }
+
+    function checkCollision(player) {
+      const windowWidth = 800;
+      const playerWidth = player.element.offsetWidth;
+
+      if (player.position + playerWidth > windowWidth || player.position < 0) {
+        gameOver(player);
+      }
+    }
+
+    function updateRank() {
+      let sortedPlayers = [...players];
+      sortedPlayers.sort((a, b) => b.position - a.position);
+
+      sortedPlayers.forEach((sortedPlayer, index) => {
+        const playerToUpdate = players.find(player => player === sortedPlayer);
+        playerToUpdate.rank = index + 1;
+
+        const playerNameElement = playerToUpdate.element.querySelector('.playerName');
+        playerNameElement.textContent = playerToUpdate.name + ' (' + playerToUpdate.rank + '등)';
+      });
+    }
+
+    function gameOver(winningPlayer) {
+      console.log('게임 오버! ' + (winningPlayer.position === 800 ? '무승부!' : winningPlayer.name + ' 플레이어 ' + winningPlayer.rank + '등!'));
+    }
+
+    function resetGame() {
+      playerNamesDiv.innerHTML = '';
+      playerCountInput.value = '10';
+      initializePlayers();
+
+      players.forEach((player) => {
+        document.body.removeChild(player.element);
+      });
+
+      players = [];
+
+      startButton.disabled = false;
+    }
+
+    function startGame() {
+      playerCount = parseInt(playerCountInput.value);
+      if (playerCount < 1) {
+        alert('플레이어 수는 최소 1 이상이어야 합니다.');
+        return;
+      }
+
+      players = [];
+
+      for (let i = 0; i < playerCount; i++) {
+        const playerNameInput = playerNamesDiv.children[i];
+        const playerName = playerNameInput.value || '플레이어 ' + (i + 1);
+        
+        const playerElement = document.createElement('div');
+        playerElement.className = 'player';
+        playerElement.style.top = (i * 60 + 150) + 'px'; // 플레이어 간격 60px로 조정
+        document.body.appendChild(playerElement);
+
+        const playerImage = document.createElement('img');
+        playerImage.src = '선수.gif'; // 플레이어 이미지 파일의 경로로 변경
+        playerElement.appendChild(playerImage);
+
+        const playerNameElement = document.createElement('div');
+        playerNameElement.className = 'playerName';
+        playerNameElement.textContent = playerName + ' (1등)';
+        playerElement.appendChild(playerNameElement);
+
+        const player = {
+          element: playerElement,
+          position: 0,
+          speed: Math.random() * 0.5 + 0.125, // 2배 더 느린 속도로 조정
+          rank: 1,
+          speedChanges: 0,
+          name: playerName,
+        };
+
+        players.push(player);
+      }
+
+      gameInterval = setInterval(movePlayers, 1000 / 60);
+
+      startButton.disabled = true;
+    }
+
+    initializePlayers();
+  </script>
+</body>
+</html>
