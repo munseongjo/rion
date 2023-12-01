@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뽑기 게임</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 15px;
+           
+            background-color: transparent;
+                        
+            align-items: center;
+            justify-content: center;
+            
+
+
+        }
+		.high {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            height: 40px;
+            width: 365px;
+            background-color: #89c;
+            font-size: 17px;
+            opacity: 0.8; /* 배경 사진의 투명도 조절 */
+            border-radius: 10px;
+
+
+
+        }
+        .center-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 382px;
+
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            gap: 5px;
+            background-color: rgba(255, 255, 255, 0.7); /* 그리드의 배경색 및 투명도 조절 */
+            padding: 10px;
+			align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+background: url('your.jpg') ;
+            background-size: cover;
+            opacity: 0.8; /* 배경 사진의 투명도 조절 */
+        }
+        .grid-item {
+            border: 1px solid #ddd;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: top;
+            justify-content: center;
+            position: relative;
+            perspective: 1000px; /* 3D 효과를 위한 값 설정 */
+            overflow: hidden;
+            opacity: 0.9; /* 배경 사진의 투명도 조절 */
+            word-break: keep-all;
+        }
+        .card {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease-in-out;
+            align-items: center;
+            justify-content: center;
+        }
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        .front, .back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            backface-visibility: hidden; /* 뒷면 감춤 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .front {
+            background-color: lightblue; /* 당첨인 경우 배경색을 연한 하늘색으로 설정 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .back {
+            transform: rotateY(180deg);
+            color: black;
+            visibility: hidden; /* 결과를 가리고 있던 부분을 보이도록 수정 */
+        }
+        .back.loser {
+            background-color: #2e9;
+            visibility: visible; /* 꽝인 경우에도 결과가 보이도록 수정 */
+        }
+        .back.winner {
+            background-color: yellow;
+            visibility: visible; /* 꽝인 경우에도 결과가 보이도록 수정 */
+        }
+    </style>
+</head>
+<body>
+    <div class="high">1개-역팬(10), 2개-역팬(50), 3개-사다리(1000),<br>4개-사다리(2000), 5개-꽝없는사다리</div>
+    <div class="center-container">
+        <div class="grid-container" id="gridContainer"></div>
+    </div>
+    <p id="result"></p>
+
+    <script>
+        var 당첨숫자들 = []; // 당첨 숫자를 저장하는 배열
+        var 선택된칸들 = []; // 선택된 칸을 저장하는 배열
+  // 실시간 별풍선 갯수를 가져오는 함수
+const getStarballoonCount = async () => {
+    const response = await fetch(`https://api.afreecatv.com/v2/channels/coco1017/events/starballoon`);
+    const data = await response.json();
+    return data.data.count;
+};
+        // 별풍선 갯수에 따라 해당 번호의 셀을 뽑는 함수
+        async function 별풍선으로뽑기() {
+            const 별풍선갯수 = await getStarballoonCount();
+            const 뽑을번호 = 별풍선갯수; // 별풍선 갯수에 해당하는 번호 뽑기
+            await 칸클릭(뽑을번호); // 뽑기 함수 호출
+            await sleep(1000); // 1초 쉬기
+        }
+
+
+// 일정 시간 동안 코드 실행을 일시 정지하는 함수
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+//api로 별풍선 갯수 읽어오기
+        setInterval(async function () {
+            await 별풍선으로뽑기();
+        }, 1000);
+// test
+//setInterval(async function () {
+//    const 별풍선갯수 = window.테스트별풍선갯수 || (await getStarballoonCount()).data.count;
+//    console.log(`별풍선 갯수: ${별풍선갯수}`);
+//    별풍선으로뽑기(별풍선갯수);
+// }, 1000);
+
+
+// 그리드 아이템 클릭 이벤트 처리
+        function 칸클릭(칸번호) {
+            // 이미 선택된 칸이면 무시
+            if (선택된칸들.includes(칸번호)) {
+                return;
+            }
+
+            // 선택된 칸으로 표시
+            선택된칸들.push(칸번호);
+            var gridItem = document.getElementById("gridItem_" + 칸번호);
+
+    if (!gridItem) {
+        console.error(`칸번호 ${칸번호}에 해당하는 gridItem을 찾을 수 없습니다.`);
+        return;
+    }
+
+            var card = gridItem.querySelector('.card');
+
+            // 카드 뒤집기 애니메이션 클래스 추가
+            card.classList.add('flipped');
+
+            // 당첨 여부 확인 (5% 확률)
+            var 당첨 = 당첨숫자들.length < 5 && (Math.random() < 0.05 || (100 - 선택된칸들.length) < (5 - 당첨숫자들.length));
+
+            // 당첨 숫자 추가
+            if (당첨) {
+                당첨숫자들.push(칸번호);
+                gridItem.style.backgroundColor = "yellow";
+                gridItem.querySelector('.front').textContent = "당첨";
+                gridItem.querySelector('.back').textContent = "당첨";
+                gridItem.querySelector('.back').classList.add('winner');
+                playSound('win.mp3'); // 당첨 효과음
+            } else {
+                gridItem.style.backgroundColor = "lightgray";
+                gridItem.querySelector('.front').textContent = "꽝";
+                gridItem.querySelector('.back').textContent = "꽝";
+                gridItem.querySelector('.back').classList.add('loser');
+                playSound('lose.mp3'); // 꽝 효과음
+            }
+
+
+
+            // 당첨 숫자가 5개가 되면 더 이상 뽑기를 허용하지 않음
+            if (당첨숫자들.length === 5) {
+                document.querySelectorAll('.grid-item').forEach(function(item) {
+                    item.removeAttribute('onclick');
+                });
+            }
+        }
+
+        // 10x10 그리드 생성
+        var gridContainer = document.getElementById("gridContainer");
+        for (var i = 1; i <= 100; i++) {
+            var gridItem = document.createElement("div");
+            gridItem.id = "gridItem_" + i;
+            gridItem.className = "grid-item";
+            
+            var card = document.createElement("div");
+            card.className = "card";
+            
+            var front = document.createElement("div");
+            front.className = "front";
+            front.textContent = i; // 숫자 표시 추가
+            
+            var back = document.createElement("div");
+            back.className = "back";
+            
+            card.appendChild(front);
+            card.appendChild(back);
+            
+            gridItem.appendChild(card);
+            gridItem.setAttribute("onclick", "칸클릭(" + i + ")");
+            gridContainer.appendChild(gridItem);
+        }
+
+        // 효과음 재생 함수
+        function playSound(soundFile) {
+            var audio = new Audio(soundFile);
+            audio.play();
+        }
+    </script>
+</body>
+</html>
