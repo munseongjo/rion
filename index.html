@@ -1,377 +1,200 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=800, height=600, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>블랙잭 게임</title>
   <style>
-    body {
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-      background-image: url('배경이미지.jpg');
-      background-size: 1200px 700px; /* 배경 이미지 크기 설정 수정 */
+    /* 카드 이미지 스타일 */
+    .card {
+      width: 110px; /* 카드의 폭 */
+      height: 192px; /* 카드의 높이 */
+      background-size: cover; /* 배경 이미지를 카드에 맞추도록 설정 */
+      position: relative; /* 상대 위치로 설정하여 겹치도록 함 */
+      margin-right: 10px; /* 카드 사이의 간격 설정 */
     }
 
-    .player {
-      position: absolute;
-      height:60px;
-      width: 120px;
-      display: flex;
-      flex-direction: column;
-      align-items: top;
-      justify-content: flex-end;
-      background: transparent;
+    /* 딜러와 플레이어의 카드 컨테이너 스타일 */
+    #dealer-hand, #player-hand {
+      display: flex; /* 요소들을 가로로 배열하도록 설정 */
+      align-items: center; /* 세로 방향 가운데 정렬 */
+      margin-bottom: 20px; /* 카드와 버튼 사이의 간격 설정 */
     }
 
-    .player img {
-      width: 50%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 502;
+    /* 플레이어와 딜러의 카드 위치 조정 */
+    #dealer-hand .card {
+      margin-right: 10px; /* 딜러의 카드는 오른쪽으로 여백을 주어 간격을 조정 */
     }
 
-    .playerName {
-      font-size: 14px;
-      margin-top: 5px;
-	  z-index: 501;
+    /* 첫 번째 딜러 카드의 감춰진 스타일 */
+    .card-hidden {
+      background-image: url('card-back.png'); /* 딜러의 첫 번째 카드는 감춰진 상태 */
     }
 
-    .collision {
-      position: absolute;
-      height: 50px;
-      width: 50px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      z-index: 1000;
+    /* 버튼 컨테이너 스타일 */
+    #buttons {
+      margin-top: 20px; /* 버튼 위쪽 여백 추가 */
     }
-
-    .collision img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .obstacle {
-      position: absolute;
-      height: 70px;
-      width: 70px;
-      background: url('투명이미지.png'); /* 투명한 이미지로 변경 */
-      background-size: cover;
-      z-index: 500;
-    }
-
-    /* 레이어 팝업 스타일 */
-    #overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5); /* 투명한 검은 배경 */
-      align-items: center;
-      justify-content: center;
-      z-index: 1001; /* 최상위 레이어로 올라오도록 설정 */
-    }
-
-    #popup {
-      background: rgba(255, 255, 255, 0.9); /* 반투명한 흰 배경 */
-      padding: 20px;
-      border-radius: 10px;
-      white-space: pre-line; /* 줄바꿈 허용 */
-    }
-
-    #closeButton {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      cursor: pointer;
+        /* 버튼 컨테이너 스타일 */
+    #regame {
+      margin-top: 20px; /* 버튼 위쪽 여백 추가 */
     }
   </style>
-  <title>다중 플레이어 역전 달리기 게임</title>
 </head>
 <body>
-
-  <label for="playerCount">플레이어 수:</label>
-  <input type="number" id="playerCount" value="8" min="2" max="8">
-  
-  <div id="playerNames"></div>
-
-  <button onclick="startGame()">게임 시작</button>
-
-  <div id="overlay">
-    <div id="popup">
-      <span id="closeButton" onclick="closePopup()">X</span>
-      <p id="resultMessage"></p>
+  <h1>블랙잭 게임</h1>
+  <div id="game">
+    <div id="dealer-hand">
+      <h2>딜러 카드</h2>
+      <!-- 딜러의 카드를 여기에 표시 -->
+    </div>
+    <div id="player-hand">
+      <h2>플레이어 카드</h2>
+      <!-- 플레이어의 카드를 여기에 표시 -->
+    </div>
+    <div id="buttons">
+      <button onclick="hit()">한장더!</button>
+      <button onclick="stand()">그만!</button>
+      <button onclick="showDealerCard()">보여줘!</button></div>
+      <div id="regame">
+      <button onclick="newGame()">리셋</button>
+    </div>
+    <div id="result">
+      <!-- 게임 결과를 여기에 표시 -->
     </div>
   </div>
 
   <script>
-    let playerCountInput = document.getElementById('playerCount');
-    let playerNamesDiv = document.getElementById('playerNames');
-    let startButton = document.querySelector('button');
+    // 카드 덱 정의 (0부터 10까지의 카드를 사용, 0은 딜러에게만 사용)
+    const deck = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
-    let playerCount = parseInt(playerCountInput.value);
-    let players = [];
-    let obstacles = [];
-    let gameInterval;
-    let obstacleCount = 0;
+    // 플레이어와 딜러의 카드 배열
+    let playerCards = [];
+    let dealerCards = [];
 
-    function initializePlayers() {
-      // 기존의 플레이어 이름 입력 칸 삭제
-      playerNamesDiv.innerHTML = '';
+    // 딜러의 카드 보기 가능 횟수
+    let dealerViewCount = 0;
 
-      for (let i = 0; i < playerCount; i++) {
-        const playerNameInput = document.createElement('input');
-        playerNameInput.type = 'text';
-        playerNameInput.placeholder = ' ' + (i + 1) + ' 이름';
-        playerNamesDiv.appendChild(playerNameInput);
+    // 게임 초기화
+    function initGame() {
+      playerCards = [];
+      dealerCards = [];
+      dealerViewCount = 0;
+      document.getElementById('result').innerText = '';
+
+      // 플레이어와 딜러에게 각각 한 장의 카드를 배분
+      dealCard(playerCards);
+      dealCard(dealerCards);
+
+      // 화면에 카드 표시
+      renderCards();
+    }
+
+    // 카드 뽑기
+    function dealCard(hand) {
+      const randomIndex = Math.floor(Math.random() * deck.length);
+      const card = deck[randomIndex];
+      hand.push(card);
+      deck.splice(randomIndex, 1);
+    }
+
+    // 플레이어가 Hit 버튼을 클릭했을 때
+    function hit() {
+      dealCard(playerCards);
+      renderCards();
+
+      if (calculateHand(playerCards) > 21) {
+        endGame('실패!');
       }
     }
 
-    function createObstacle() {
-      const obstacle = document.createElement('div');
-      obstacle.className = 'obstacle';
-      obstacle.style.top = (Math.random() * 700 + 100) + 'px';
-      obstacle.style.left = (Math.random() * 1200) + 'px';
-      document.body.appendChild(obstacle);
-      obstacles.push(obstacle);
+    // 플레이어가 Stand 버튼을 클릭했을 때
+    function stand() {
+      const dealerInitialCards = dealerCards.slice(); // 딜러가 가지고 있던 카드를 복사하여 보관
 
-      // 일정 시간 후에 장애물 제거
-      setTimeout(() => {
-        document.body.removeChild(obstacle);
-        obstacles = obstacles.filter(ob => ob !== obstacle);
-      }, 2000); // 2초 동안 유지 후 제거
-    }
+      // 딜러의 카드 합이 17 이상이 될 때까지 카드를 뽑음
+      while (calculateHand(dealerCards) < 17) {
+        dealCard(dealerCards);
 
-    function moveObstacles() {
-      if (obstacleCount < 100 && Math.random() < 0.05) {
-        createObstacle();
-        obstacleCount++;
+        // 딜러의 카드 합이 21을 초과하면 마지막으로 뽑은 카드를 되돌림
+        if (calculateHand(dealerCards) > 21) {
+          dealerCards.pop(); // 마지막으로 뽑은 카드를 되돌림
+           dealCard(dealerCards);
+                     dealCard(dealerCards);
+          break;
+        }
+      }
+
+      dealerViewCount++; // 딜러의 카드 보기 횟수 증가
+      renderCards();
+
+      const playerScore = calculateHand(playerCards);
+      const dealerScore = calculateHand(dealerCards);
+
+      if (dealerScore > 21 || playerScore > dealerScore) {
+        endGame('성공!');
+      } else if (playerScore < dealerScore) {
+        endGame('패배!');
+      } else {
+        endGame('무승부!');
       }
     }
 
-    function checkObstacleCollision(obstacle) {
-      players.forEach(player => {
-        const playerLeft = player.position;
-        const playerRight = player.position + player.element.offsetWidth;
-        const playerTop = parseInt(player.element.style.top);
-        const playerBottom = playerTop + player.element.offsetHeight;
+// 카드를 덱으로 반환
+function returnToDeck(cards) {
+    deck.push(...cards);
+}
 
-        const obstacleLeft = parseInt(obstacle.style.left);
-        const obstacleRight = obstacleLeft + obstacle.offsetWidth;
-        const obstacleTop = parseInt(obstacle.style.top);
-        const obstacleBottom = obstacleTop + obstacle.offsetHeight;
+// 새 게임 시작
+function newGame() {
+    returnToDeck(playerCards); // 플레이어의 카드를 덱으로 반환
+    returnToDeck(dealerCards); // 딜러의 카드를 덱으로 반환
+    initGame(); // 게임 초기화
+    document.getElementById('buttons').style.display = 'block'; // 버튼 보이기
+    document.getElementById('regame').style.display = 'block'; // 버튼 보이기
+}
 
-        if (
-          playerRight > obstacleLeft &&
-          playerLeft < obstacleRight &&
-          playerBottom > obstacleTop &&
-          playerTop < obstacleBottom
-        ) {
-          handleCollision(player);
-        }
+
+    // 카드의 합 계산
+    function calculateHand(hand) {
+      return hand.reduce((total, card) => total + card, 0);
+    }
+
+    // 게임 종료
+    function endGame(message) {
+      document.getElementById('result').innerText = message;
+      document.getElementById('buttons').style.display = 'none'; // 버튼 컨테이너 숨기기
+    }
+
+    // 딜러의 카드를 화면에 표시
+    function renderCards() {
+      document.getElementById('player-hand').innerHTML = playerCards.map(card => `<div class="card" style="background-image: url('${String(card).padStart(3, '0')}.png');"></div>`).join('');
+      const dealerHand = document.getElementById('dealer-hand');
+      dealerHand.innerHTML = ''; // 기존 딜러의 카드를 모두 제거
+
+      // 딜러의 카드를 새로 추가
+      dealerCards.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'card';
+        cardElement.style.backgroundImage = `url('${String(card).padStart(3, '0')}.png')`;
+        if (index === 0 && dealerViewCount === 0) {
+          cardElement.classList.add('card-hidden'); // 첫 번째 카드는 감춰진 상태로 설정
+        }          
+        dealerHand.appendChild(cardElement);
       });
     }
 
-    function handleCollision(player) {
-      const collisionElement = document.createElement('div');
-      collisionElement.className = 'collision';
-      collisionElement.style.top = player.element.style.top;
-      collisionElement.style.left = player.element.style.left;
-      document.body.appendChild(collisionElement);
-
-      setTimeout(() => {
-        document.body.removeChild(collisionElement);
-      }, 500);
-
-      player.speed = 0;
-      setTimeout(() => {
-        player.speed = Math.random() * 1.5 + 0.125;
-      }, 2000);
-    }
-
-    function movePlayers() {
-      let isRaceOver = false;
-
-      players.forEach((player, index) => {
-        if (Math.random() < 0.08) {
-          player.speed += Math.abs((Math.random() - 0.2)) * 0.125;
-          player.speedChanges ++;
-
-        }
-		        
-        player.position += player.speed;
-
-        if (player.position > 800 - player.element.offsetWidth || player.position < 0) {
-          player.speed += (Math.random() - 0.5) * 2 * 0.125;
-          player.speedChanges++;
-
-        }
-        if (player.position > 400 - player.element.offsetWidth || player.position < 0) {
-          player.speed += (Math.random() - 0.5) * 1 * 0.125;
-          player.speedChanges++;
-
-        }
-        if (player.position > 200 - player.element.offsetWidth || player.position < 0) {
-          player.speed += (Math.random() - 0.5) * 0.5 * 0.125;
-          player.speedChanges++;
-
-        }
-        if (player.position > 600 - player.element.offsetWidth || player.position < 0) {
-          player.speed += (Math.random() - 0.5) * 1 * 0.125;
-          player.speedChanges++;
-
-        }
-        if (player.position > 1200 - player.element.offsetWidth || player.position < 0) {
-          player.speed += (Math.random() - 0.5) * 4 * 0.125;
-          player.speedChanges++;
-
-        }
-        if (player.position > 1000 - player.element.offsetWidth || player.position < 0) {
-          player.speed += (Math.random() - 0.5) * 2 * 0.125;
-          player.speedChanges++;
-
-        }
-
-
-
-        player.element.style.left = player.position + 'px';
-        checkCollision(player);
-
-        if (player.position >= 1200 - player.element.offsetWidth) {
-          isRaceOver = true;
-        }
-      });
-
-      moveObstacles();
-
-      obstacles.forEach(obstacle => {
-        checkObstacleCollision(obstacle);
-      });
-
-      updateRank();
-
-      if (isRaceOver) {
-        clearInterval(gameInterval);
-
-        const ranks = players.map(player => player.rank);
-        const resultMessage = ranks.map((rank, index) => players.find(player => player.rank === rank).name + '  ' + rank + '등').join('\n');
-        showPopup(resultMessage);
-
-        //resetGame();  // 여기서 게임을 리셋하려면 팝업에서 리셋 버튼 등을 추가해야 합니다.
+    // 딜러 카드 보기
+    function showDealerCard() {
+      if (dealerViewCount < 2) {
+        dealerViewCount++;
+        dealCard(dealerCards);
+        renderCards();
       }
     }
 
-    function checkCollision(player) {
-      const windowWidth = 1200;
-      const playerWidth = player.element.offsetWidth;
-
-      if (player.position + playerWidth > windowWidth || player.position < 0) {
-        gameOver(player);
-      }
-    }
-
-    function updateRank() {
-      let sortedPlayers = [...players];
-      sortedPlayers.sort((a, b) => b.position - a.position);
-
-      sortedPlayers.forEach((sortedPlayer, index) => {
-        const playerToUpdate = players.find(player => player === sortedPlayer);
-        playerToUpdate.rank = index + 1;
-
-        const playerNameElement = playerToUpdate.element.querySelector('.playerName');
-        playerNameElement.textContent = playerToUpdate.name + ' (' + playerToUpdate.rank + '등)';
-      });
-    }
-
-    function gameOver(winningPlayer) {
-      // console.log((winningPlayer.position === 1200 ? '무승부!' : winningPlayer.name + ' 플레이어 ' + winningPlayer.rank + '등!'));
-      showPopup((winningPlayer.position === 1200 ? '무승부!' : winningPlayer.name + ' 플레이어 ' + winningPlayer.rank + '등!'));
-    }
-
-    function resetGame() {
-      // 기존의 플레이어 삭제
-      players.forEach((player) => {
-        document.body.removeChild(player.element);
-      });
-
-      // 기존의 장애물 삭제
-      obstacles.forEach((obstacle) => {
-        document.body.removeChild(obstacle);
-      });
-
-      players = [];
-      obstacles = [];
-      obstacleCount = 0;
-
-      startButton.disabled = false;
-
-    }
-
-    function startGame() {
-      playerCount = parseInt(playerCountInput.value);
-      if (playerCount < 1) {
-        alert('플레이어 수는 최소 1 이상이어야 합니다.');
-        return;
-      }
-
-      players = [];
-
-      for (let i = 0; i < playerCount; i++) {
-        const playerNameInput = playerNamesDiv.children[i];
-        const playerName = playerNameInput.value || '플레이어 ' + (i + 1);
-        
-        const playerElement = document.createElement('div');
-        playerElement.className = 'player';
-        playerElement.style.top = (i * 60 + 150) + 'px';
-        document.body.appendChild(playerElement);
-
-        const playerImage = document.createElement('img');
-        playerImage.src = '선수.gif';
-        playerElement.appendChild(playerImage);
-
-        const playerNameElement = document.createElement('div');
-        playerNameElement.className = 'playerName';
-        playerNameElement.textContent = playerName + ' (1등)';
-        playerElement.appendChild(playerNameElement);
-
-        const player = {
-          element: playerElement,
-          position: 0,
-          speed: Math.random() * 0.5 + 0.125,
-          rank: 1,
-          speedChanges: 0,
-          name: playerName,
-        };
-
-        players.push(player);
-      }
-
-      initializePlayers();
-      gameInterval = setInterval(movePlayers, 1200 / 40);
-
-      startButton.disabled = true;
-
-    }
-
-    function showPopup(message) {
-      const overlay = document.getElementById('overlay');
-      const resultMessage = document.getElementById('resultMessage');
-      resultMessage.textContent = message;
-
-      overlay.style.display = 'flex';
-    }
-
-    function closePopup() {
-      const overlay = document.getElementById('overlay');
-      overlay.style.display = 'none';
-    }
-
-    initializePlayers();
+    // 게임 시작
+    initGame();
   </script>
 </body>
 </html>
