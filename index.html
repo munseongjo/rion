@@ -118,7 +118,7 @@ function stand() {
 
     // 딜러의 카드 합이 17 이상이 될 때까지 카드를 뽑음
     while (calculateHand(dealerCards) < 18) {
-        const remainingDeck = deck.filter(card => calculateHand([...dealerCards, card]) <= 21); // 21을 초과하지 않는 카드 필터링
+        const remainingDeck = deck.filter(card => calculateHand([...dealerCards, card]) <= 20); // 21을 초과하지 않는 카드 필터링
         const randomIndex = Math.floor(Math.random() * remainingDeck.length);
         const card = remainingDeck[randomIndex];
         dealerCards.push(card);
